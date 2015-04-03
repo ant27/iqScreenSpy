@@ -49,7 +49,9 @@ void IqScreenSpy::onTimeout()
 {
     QTime currtentTime = QTime::currentTime();
     QSettings settings;
+    settings.beginGroup(SETTING_GROUP_FFMPEG);
     qint64 recordDuration = settings.value(SETTING_FFMPEG_RECORD_DURATION).toLongLong();
+    settings.endGroup();
     int recordDurationInMinutes = recordDuration / 60000;
     if (currtentTime.second() != 0 || currtentTime.minute() % recordDurationInMinutes != 0)
         return;
@@ -162,7 +164,7 @@ void IqScreenSpy::rotate()
 void IqScreenSpy::archive()
 {
     QSettings settings;
-    settings.beginGroup(SETTING_GROUP_ROTATE);
+    settings.beginGroup(SETTING_GROUP_ARCHIVE);
     bool useCompress = settings.value(SETTING_ARCHIVE_COMMPRESS_ENABLED).toBool();
     qint64 uncompressStorageTime = settings.value(SETTING_ARCHIVE_UNCOMPRESSED_STORAGE_TIME).toLongLong();
     settings.endGroup();
@@ -193,7 +195,7 @@ void IqScreenSpy::archiveNext()
     }
 
     QSettings settings;
-    settings.beginGroup(SETTING_GROUP_ROTATE);
+    settings.beginGroup(SETTING_GROUP_ARCHIVE);
     QString tarBinPath = settings.value(SETTING_ARCHIVE_TAR_BIN_PATH).toString();
     settings.endGroup();
 
