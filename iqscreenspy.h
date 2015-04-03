@@ -3,23 +3,29 @@
 
 #include <QObject>
 #include <QTimer>
+#include <QStringList>
 
-class IQScreenSpy : public QObject
+class IqScreenSpy : public QObject
 {
     Q_OBJECT
 public:
-    explicit IQScreenSpy(QObject *parent = 0);
+    explicit IqScreenSpy(QObject *parent = 0);
         
 public slots:
     void start();
 
-private slots:
+private:
     void onTimeout();
+    void initializeSettings();
+    void startNewRecords();
+    void rotate();
+    void archive();
+    void archiveNext();
+    QStringList findOldFile(qint64 time) const;
 
 private:
-    void startNewRecords();
-    void clearOld();
-
-    QTimer _timer;
+    QTimer m_timer;
+    bool m_archiveInProcess;
+    QStringList m_filestToArchive;
 };
 #endif // IQSCREENSPY_H

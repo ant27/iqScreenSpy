@@ -4,11 +4,9 @@
 #
 #-------------------------------------------------
 
-QT       += core
+QT       += core gui widgets network
 
-QT       -= gui
-
-TARGET = iqscreensspy
+TARGET = iqScreenSpy
 CONFIG   += console
 CONFIG   -= app_bundle
 
@@ -17,8 +15,10 @@ TEMPLATE = app
 
 SOURCES += main.cpp \
     iqffmpegprocess.cpp \
-    iqscreenspy.cpp
+    iqscreenspy.cpp \
+    iqtarprocess.cpp
 
 HEADERS += \
     iqffmpegprocess.h \
-    iqscreenspy.h
+    iqscreenspy.h \
+    iqtarprocess.h

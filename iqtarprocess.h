@@ -2,6 +2,7 @@
 #define IQTARPROCESS_H
 
 #include <QObject>
+#include <QProcess>
 
 class IqTarProcess : public QObject
 {
@@ -9,9 +10,20 @@ class IqTarProcess : public QObject
 public:
     explicit IqTarProcess(QObject *parent = 0);
 
-signals:
+    void setProcessEnvironment(const QProcessEnvironment &environment);
 
-public slots:
+    void start(const QString &filePath);
+
+signals:
+    void finished(int exitCode, QProcess::ExitStatus exitStatus);
+
+public:
+    QString binPath() const;
+    void setBinPath(const QString &binPath);
+
+private:
+    QProcess m_tar;
+    QString m_binPath;
 };
 
 #endif // IQTARPROCESS_H

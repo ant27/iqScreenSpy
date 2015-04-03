@@ -1,9 +1,21 @@
-#define SETTING_PARAM_OUTPUT_DIR "outputDir"
-#define SETTING_PARAM_HOSTS "hosts"
-#define SETTING_PARAM_FFMPEG_BIN_STRING "ffmpegBinString"
-#define SETTING_PARAM_FFMPEG_LIBRARY_PATH "ffmpegLibraryPath"
-#define SETTING_PARAM_STORAGE_TIME "storageTime"
-#define SETTING_PARAM_RECORD_DURATION "recordDuration"
+#define SETTING_GENERAL_OUTPUT_DIR "outputDir"
+
+#define SETTING_GROUP_FFMPEG "FFmpegParams"
+#define SETTING_FFMPEG_FFMPEG_BIN_PATH "ffmpegBinPath"
+#define SETTING_FFMPEG_FFMPEG_EXTRA_LD_LIBRARYPATH "extraLdLibraryPath"
+#define SETTING_FFMPEG_MAXIMUM_FPS "maximumFps"
+#define SETTING_FFMPEG_MAXIMUM_THREADS "maximumThreads"
+#define SETTING_FFMPEG_VCODEC_PARAMS "vcodecParams"
+#define SETTING_FFMPEG_OUTPUT_FILE_EXTENSION "outputFileExtension"
+#define SETTING_FFMPEG_RECORD_DURATION "recordDuration"
+
+#define SETTING_GROUP_ROTATE "RotateParams"
+#define SETTING_ROTATE_STORAGE_TIME "storageTime"
+
+#define SETTING_GROUP_ARCHIVE "ArchiveParams"
+#define SETTING_ARCHIVE_COMMPRESS_ENABLED "commpressEnabled"
+#define SETTING_ARCHIVE_UNCOMPRESSED_STORAGE_TIME "uncompressedStorageTime"
+#define SETTING_ARCHIVE_TAR_BIN_PATH "tarBinPath"
 
 #include "iqscreenspy.h"
 #include <QSettings>
@@ -14,28 +26,30 @@
 #include <QDebug>
 #include <QFile>
 #include "iqffmpegprocess.h"
+#include "iqtarprocess.h"
 
-IQScreenSpy::IQScreenSpy(QObject *parent) :
+IqScreenSpy::IqScreenSpy(QObject *parent) :
     QObject(parent)
 {
-    _timer.setInterval(1000);
-    _timer.setSingleShot(false);
-    connect(&_timer, SIGNAL(timeout()), this, SLOT(onTimeout()));
+    m_timer.setInterval(1000);
+    m_timer.setSingleShot(false);
+
+    initializeSettings();
+
+    connect(&m_timer, &QTimer::timeout, this, &IqScreenSpy::onTimeout);
 }
 
-void IQScreenSpy::start()
+void IqScreenSpy::start()
 {
     startNewRecords();
-    _timer.start();
+    m_timer.start();
 }
 
-void IQScreenSpy::onTimeout()
+void IqScreenSpy::onTimeout()
 {
     QTime currtentTime = QTime::currentTime();
     QSettings settings;
-    if (!settings.contains(SETTING_PARAM_RECORD_DURATION))
-        settings.setValue(SETTING_PARAM_RECORD_DURATION, 600000);
-    qint64 recordDuration = settings.value(SETTING_PARAM_RECORD_DURATION);
+    qint64 recordDuration = settings.value(SETTING_FFMPEG_RECORD_DURATION).toLongLong();
     int recordDurationInMinutes = recordDuration / 60000;
     if (currtentTime.second() != 0 || currtentTime.minute() % recordDurationInMinutes != 0)
         return;
@@ -43,83 +57,164 @@ void IQScreenSpy::onTimeout()
     startNewRecords();
 }
 
-void IQScreenSpy::startNewRecords()
+void IqScreenSpy::initializeSettings()
 {
-    if (!settings.contains(SETTING_PARAM_RECORD_DURATION))
-        settings.setValue(SETTING_PARAM_RECORD_DURATION, 600000);
-    qint64 recordDuration = settings.value(SETTING_PARAM_RECORD_DURATION);
+    QSettings settings;
+    if (!settings.contains(SETTING_GENERAL_OUTPUT_DIR))
+        settings.setValue(SETTING_GENERAL_OUTPUT_DIR, "~");
+
+    settings.beginGroup(SETTING_GROUP_FFMPEG);
+    if (!settings.contains(SETTING_FFMPEG_FFMPEG_BIN_PATH))
+        settings.setValue(SETTING_FFMPEG_FFMPEG_BIN_PATH, "ffmpeg");
+    if (!settings.contains(SETTING_FFMPEG_FFMPEG_EXTRA_LD_LIBRARYPATH))
+        settings.setValue(SETTING_FFMPEG_FFMPEG_EXTRA_LD_LIBRARYPATH, "/opt/csw/X11/lib");
+    if (!settings.contains(SETTING_FFMPEG_MAXIMUM_FPS))
+        settings.setValue(SETTING_FFMPEG_MAXIMUM_FPS, 4);
+    if (!settings.contains(SETTING_FFMPEG_MAXIMUM_THREADS))
+        settings.setValue(SETTING_FFMPEG_MAXIMUM_THREADS, 2);
+    if (!settings.contains(SETTING_FFMPEG_VCODEC_PARAMS))
+        settings.setValue(SETTING_FFMPEG_VCODEC_PARAMS, "libx264 -crf 18 -tune stillimage");
+    if (!settings.contains(SETTING_FFMPEG_RECORD_DURATION))
+        settings.setValue(SETTING_FFMPEG_RECORD_DURATION, 600000);
+    if (!settings.contains(SETTING_FFMPEG_OUTPUT_FILE_EXTENSION))
+        settings.setValue(SETTING_FFMPEG_OUTPUT_FILE_EXTENSION, ".avi");
+    settings.endGroup();
+
+    settings.beginGroup(SETTING_GROUP_ROTATE);
+    if (!settings.contains(SETTING_ROTATE_STORAGE_TIME))
+        settings.setValue(SETTING_ROTATE_STORAGE_TIME, (qint64)2592000000);
+    settings.endGroup();
+
+    settings.beginGroup(SETTING_GROUP_ARCHIVE);
+    if (!settings.contains(SETTING_ARCHIVE_UNCOMPRESSED_STORAGE_TIME))
+        settings.setValue(SETTING_ARCHIVE_UNCOMPRESSED_STORAGE_TIME, (qint64)86400000);
+    if (!settings.contains(SETTING_ARCHIVE_COMMPRESS_ENABLED))
+        settings.setValue(SETTING_ARCHIVE_COMMPRESS_ENABLED, true);
+    if (!settings.contains(SETTING_ARCHIVE_TAR_BIN_PATH))
+        settings.setValue(SETTING_ARCHIVE_TAR_BIN_PATH, "tar");
+    settings.endGroup();
+}
+
+void IqScreenSpy::startNewRecords()
+{
+    QSettings settings;
+    QString outputDir = settings.value(SETTING_GENERAL_OUTPUT_DIR).toString();
+
+    settings.beginGroup(SETTING_GROUP_FFMPEG);
+    QString binPath = settings.value(SETTING_FFMPEG_FFMPEG_BIN_PATH).toString();
+    QString extraLibraryPath = settings.value(SETTING_FFMPEG_FFMPEG_EXTRA_LD_LIBRARYPATH).toString();
+    int ffmpegFps = settings.value(SETTING_FFMPEG_MAXIMUM_FPS).toInt();
+    int ffmpegThreads = settings.value(SETTING_FFMPEG_MAXIMUM_THREADS).toInt();
+    QString ffmpegVcodec = settings.value(SETTING_FFMPEG_VCODEC_PARAMS).toString();
+    qint64 recordDuration = settings.value(SETTING_FFMPEG_RECORD_DURATION).toLongLong();
+    QString outputFileExtension = settings.value(SETTING_FFMPEG_OUTPUT_FILE_EXTENSION).toString();
+    settings.endGroup();
+
     int recordDurationInMinutes = recordDuration / 60000;
 
     QDateTime currentDateTime = QDateTime::currentDateTime();
     QDateTime nextDateTime = currentDateTime;
-    if (currentDateTime.time().minute() >= 50)
-    {
+    if (currentDateTime.time().minute() >= 50) {
         nextDateTime = nextDateTime.addSecs(3600);
         nextDateTime.setTime(QTime(nextDateTime.time().hour(), 0, 0));
     }
-    else
-    {
+    else {
         int nextMinute = currentDateTime.time().minute() + recordDurationInMinutes - currentDateTime.time().minute()%recordDurationInMinutes;
         nextDateTime.setTime(QTime(nextDateTime.time().hour(), nextMinute, 0));
     }
     qint64 duration = currentDateTime.msecsTo(nextDateTime);
 
-    if (!settings.contains(SETTING_PARAM_OUTPUT_DIR))
-        settings.setValue(SETTING_PARAM_OUTPUT_DIR, "~");
-    QString outputDir = settings.value(SETTING_PARAM_OUTPUT_DIR).toString();
-    if (!settings.contains(SETTING_PARAM_FFMPEG_BIN_STRING))
-        settings.setValue(SETTING_PARAM_FFMPEG_BIN_STRING, "ffmpeg -r 10 -s %RESOLUTION% -f x11grab -i %HOSTNAME%:0.0 -s %RESOLUTION% -vcodec libx264 -y %OUPTUPFILE%");
-    QString ffmpegBinStr = settings.value(SETTING_PARAM_FFMPEG_BIN_STRING).toString();
-    if (!settings.contains(SETTING_PARAM_HOSTS))
-        settings.setValue(SETTING_PARAM_HOSTS, "localhost:1366x768");
-    QString hosts = settings.value(SETTING_PARAM_HOSTS).toString();
-    QStringList hostsList = hosts.split(" ");
-
-    if (!settings.contains(SETTING_PARAM_FFMPEG_LIBRARY_PATH))
-        settings.setValue(SETTING_PARAM_FFMPEG_LIBRARY_PATH, "");
-    QString ffmpegLibraryPath = settings.value(SETTING_PARAM_FFMPEG_LIBRARY_PATH).toString();
     QProcessEnvironment ffmpegEnvironment = QProcessEnvironment::systemEnvironment();
-    if (!ffmpegLibraryPath.isEmpty())
-    {
-        ffmpegEnvironment.insert("LD_LIBRARY_PATH", ffmpegEnvironment.value("LD_LIBRARY_PATH") + ":" + ffmpegLibraryPath);
+    if (!extraLibraryPath.isEmpty()) {
+        ffmpegEnvironment.insert("LD_LIBRARY_PATH", ffmpegEnvironment.value("LD_LIBRARY_PATH") + ":" + extraLibraryPath);
     }
 
-    foreach (QString hostStr, hostsList)
-    {
-        QStringList pars1 = hostStr.split(":");
-        if (pars1.size() != 2)
-            continue;
-        QString host = pars1[0];
-        QStringList pars2 = pars1[1].split("x");
-        if (pars2.size() != 2)
-            continue;
-        int height = pars2[0].toInt();
-        int width = pars2[1].toInt();
 
-        IQFFmpegProcess *ffmpeg = new IQFFmpegProcess(this);
-        connect(ffmpeg, SIGNAL(finished(int)), ffmpeg, SLOT(deleteLater()));
-        ffmpeg->setFFmpegBinString(ffmpegBinStr);
-        ffmpeg->setProcessEnvironment(ffmpegEnvironment);
-        ffmpeg->setOutputDir(outputDir);
-        ffmpeg->start(host, height, width, duration);
-    }
+    IqFfmpegProcess *ffmpeg = new IqFfmpegProcess(this);
+    ffmpeg->setOutputDir(outputDir);
+    ffmpeg->setOutputFileExtension(outputFileExtension);
+    ffmpeg->setBinPath(binPath);
+    ffmpeg->setProcessEnvironment(ffmpegEnvironment);
+    ffmpeg->setFps(ffmpegFps);
+    ffmpeg->setThreads(ffmpegThreads);
+    ffmpeg->setVcodeParam(ffmpegVcodec);
+    ffmpeg->start(duration);
 
-    clearOld();
+    connect(ffmpeg, &IqFfmpegProcess::finished, ffmpeg, &QObject::deleteLater);
+
+    rotate();
+    archive();
 }
 
-void IQScreenSpy::clearOld()
+void IqScreenSpy::rotate()
 {
-    QDateTime currentDateTime = QDateTime::currentDateTime();
     QSettings settings;
-    QString outputDirStr = settings.value(SETTING_PARAM_OUTPUT_DIR).toString();
-    if (!settings.contains(SETTING_PARAM_STORAGE_TIME))
-        settings.setValue(SETTING_PARAM_STORAGE_TIME, (qint64)3600000);
-    qint64 storageTime = settings.value(SETTING_PARAM_STORAGE_TIME).toLongLong();
+    settings.beginGroup(SETTING_GROUP_ROTATE);
+    qint64 storageTime = settings.value(SETTING_ROTATE_STORAGE_TIME).toLongLong();
+    settings.endGroup();
+
+    foreach (const QString &filePath, findOldFile(storageTime)) {
+        QFile::remove(filePath);
+        qDebug() << "Remove " << filePath;
+    }
+}
+
+void IqScreenSpy::archive()
+{
+    QSettings settings;
+    settings.beginGroup(SETTING_GROUP_ROTATE);
+    bool useCompress = settings.value(SETTING_ARCHIVE_COMMPRESS_ENABLED).toBool();
+    qint64 uncompressStorageTime = settings.value(SETTING_ARCHIVE_UNCOMPRESSED_STORAGE_TIME).toLongLong();
+    settings.endGroup();
+
+    if (!useCompress)
+        return;
+
+    if (m_archiveInProcess)
+        return;
+    m_archiveInProcess = true;
+    m_filestToArchive = findOldFile(uncompressStorageTime);
+    archiveNext();
+}
+
+void IqScreenSpy::archiveNext()
+{
+    if (m_filestToArchive.isEmpty()) {
+        m_archiveInProcess = false;
+        return;
+    }
+
+    QString nextFile = m_filestToArchive.first();
+    m_filestToArchive.removeFirst();
+
+    if (nextFile.right(7) == ".tar.gz") {
+        archiveNext();
+        return;
+    }
+
+    QSettings settings;
+    settings.beginGroup(SETTING_GROUP_ROTATE);
+    QString tarBinPath = settings.value(SETTING_ARCHIVE_TAR_BIN_PATH).toString();
+    settings.endGroup();
+
+    IqTarProcess *tarProcess = new IqTarProcess(this);
+    tarProcess->setBinPath(tarBinPath);
+    connect(tarProcess, &IqTarProcess::finished, this, &IqScreenSpy::archiveNext);
+    tarProcess->start(nextFile);
+}
+
+QStringList IqScreenSpy::findOldFile(qint64 time) const
+{
+    QStringList result;
+
+    QSettings settings;
+    QString outputDirStr = settings.value(SETTING_GENERAL_OUTPUT_DIR).toString();
+
+    QDateTime currentDateTime = QDateTime::currentDateTime();
     QDir outputDir (outputDirStr);
-    QFileInfoList outputDirEntry = outputDir.entryInfoList(QStringList() << "*.mkv" << "*.mkv.gz");
+    QFileInfoList outputDirEntry = outputDir.entryInfoList();
     QRegExp rx ("(.*)_(\\d\\d\\.\\d\\d\\.\\d\\d\\d\\d)_(\\d\\d\\.\\d\\d)-(\\d\\d\\.\\d\\d\\.\\d\\d\\d\\d)_(\\d\\d\\.\\d\\d)");
-    foreach (QFileInfo file, outputDirEntry)
-    {
+    foreach (QFileInfo file, outputDirEntry) {
         if (rx.indexIn(file.fileName()) == -1)
             continue;
         QStringList filePrs = rx.capturedTexts();
@@ -127,10 +222,11 @@ void IQScreenSpy::clearOld()
             continue;
         QDateTime fileDateTime = QDateTime::fromString(filePrs[2] + " " + filePrs[3], "dd.MM.yyyy hh.mm");
 
-        if (fileDateTime.msecsTo(currentDateTime) > storageTime)
+        if (fileDateTime.msecsTo(currentDateTime) > time)
         {
-            QFile::remove(file.filePath());
-            qDebug() << "Remove " << file.filePath();
+            result << file.filePath();
         }
     }
+
+    return result;
 }

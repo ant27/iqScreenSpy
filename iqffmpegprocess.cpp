@@ -1,66 +1,135 @@
 #include "iqffmpegprocess.h"
 #include <QDateTime>
 #include <QDebug>
+#include <QApplication>
+#include <QDesktopWidget>
+#include <QHostInfo>
 
-IQFFmpegProcess::IQFFmpegProcess(QObject *parent) :
+IqFfmpegProcess::IqFfmpegProcess(QObject *parent) :
     QObject(parent)
 {
-    connect(&_finishedTimer, SIGNAL(timeout()), this, SLOT(stop()));
+    connect(&m_ffmpeg, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this, &IqFfmpegProcess::finished);
+    connect(&m_finishedTimer, &QTimer::timeout, this, &IqFfmpegProcess::stop);
 }
 
-void IQFFmpegProcess::setProcessEnvironment(const QProcessEnvironment &environment)
+void IqFfmpegProcess::setProcessEnvironment(const QProcessEnvironment &environment)
 {
-    _ffmpeg.setProcessEnvironment(environment);
+    m_ffmpeg.setProcessEnvironment(environment);
 }
 
-void IQFFmpegProcess::setFFmpegBinString(const QString &ffmpegBinStr)
+void IqFfmpegProcess::setOutputDir(const QString &dir)
 {
-    if (_ffmpegBinString == ffmpegBinStr)
-        return;
-    _ffmpegBinString = ffmpegBinStr;
+    if (m_outputDir != dir)
+        m_outputDir = dir;
 }
 
-void IQFFmpegProcess::setOutputDir(const QString &dir)
+void IqFfmpegProcess::start(const qint64 duration)
 {
-    if (_outputDir == dir)
-        return;
-    _outputDir = dir;
-}
-
-void IQFFmpegProcess::start(const QString &hostName, const int height, const int width, const qint64 duration)
-{
-    QString ffmpegProgram = _ffmpegBinString;
-    ffmpegProgram.replace("%RESOLUTION%", QString("%0x%1").arg(height).arg(width));
-    ffmpegProgram.replace("%HOSTNAME%", hostName);
     QDateTime curDT = QDateTime::currentDateTime();
     QDateTime endDT = curDT.addMSecs(duration);
     QString startDT = curDT.toString("dd.MM.yyyy_hh.mm");
     QString endDTStr = endDT.toString("dd.MM.yyyy_hh.mm");
-    QString outputFile = QString("%0/%1_%2-%3.mkv")
-            .arg(_outputDir)
-            .arg(hostName)
+    QString outputFile = QString("%0/%1_%2-%3%4")
+            .arg(m_outputDir)
+            .arg(QHostInfo::localHostName())
             .arg(startDT)
-            .arg(endDTStr);
-    ffmpegProgram.replace("%OUPTUPFILE%", outputFile);
+            .arg(endDTStr)
+            .arg(outputFileExtension());
 
-    qDebug() << "Start spy to host " << hostName << "to file " << outputFile;
-    _host = hostName;
-    _fileName = outputFile;
-    _ffmpeg.start(ffmpegProgram);
-    _finishedTimer.start(duration + _lapping);
-}
+    QString ffmpegProgram;
+    ffmpegProgram.append(binPath());
+    ffmpegProgram.append(" -y ");
+    ffmpegProgram.append(" -s ");
+    ffmpegProgram.append(QString("%0x%1")
+                         .arg(QApplication::desktop()->screenGeometry().width())
+                         .arg(QApplication::desktop()->screenGeometry().height()));
+    ffmpegProgram.append(" -f x11grab ");
+    ffmpegProgram.append(" -i :0.0 ");
+    ffmpegProgram.append(" -r ");
+    ffmpegProgram.append(QString::number(fps()));
+    ffmpegProgram.append(" -threads ");
+    ffmpegProgram.append(QString::number(threads()));
+    ffmpegProgram.append(" -vcodec ");
+    ffmpegProgram.append(vcodeParam());
+    ffmpegProgram.append(" ");
+    ffmpegProgram.append(outputFile);
 
-void IQFFmpegProcess::stop()
-{
-    if(!_ffmpeg.waitForStarted())
-    {
-        _ffmpeg.kill();
-        emit finished(1);
+    qDebug() << "Start record screen to file " << outputFile << ". With command " << ffmpegProgram;
+    m_fileName = outputFile;
+    m_ffmpeg.start(ffmpegProgram);
+
+    if(!m_ffmpeg.waitForStarted()) {
+        m_ffmpeg.kill();
         return;
     }
-    _ffmpeg.write("q");
-    if (!_ffmpeg.waitForFinished(_finishedInterval))
-        _ffmpeg.kill();
-    qDebug() << "End spy to host " << _host << ". File saved to " << _fileName;
-    emit finished(0);
+
+    m_finishedTimer.start(duration + m_lapping);
 }
+
+void IqFfmpegProcess::stop()
+{
+    m_ffmpeg.write("q");
+    if (!m_ffmpeg.waitForFinished(m_finishedInterval))
+        m_ffmpeg.kill();
+    qDebug() << "End record screen. File saved to " << m_fileName;
+}
+QString IqFfmpegProcess::binPath() const
+{
+    return m_binPath;
+}
+
+void IqFfmpegProcess::setBinPath(const QString &binPath)
+{
+    m_binPath = binPath;
+}
+
+
+int IqFfmpegProcess::threads() const
+{
+    return m_threads;
+}
+
+void IqFfmpegProcess::setThreads(int threads)
+{
+    if (m_threads != threads)
+        m_threads = threads;
+}
+
+QString IqFfmpegProcess::vcodeParam() const
+{
+    return m_vcodeParam;
+}
+
+void IqFfmpegProcess::setVcodeParam(const QString &vcodeParam)
+{
+    if (m_vcodeParam != vcodeParam)
+        m_vcodeParam = vcodeParam;
+}
+
+int IqFfmpegProcess::fps() const
+{
+    return m_fps;
+}
+
+void IqFfmpegProcess::setFps(int fps)
+{
+    if (m_fps != fps)
+        m_fps = fps;
+}
+
+QString IqFfmpegProcess::outputFileExtension() const
+{
+    return m_outputFileExtension;
+}
+
+void IqFfmpegProcess::setOutputFileExtension(const QString &outputFileExtension)
+{
+    if (m_outputFileExtension != outputFileExtension)
+        m_outputFileExtension = outputFileExtension;
+}
+
+QString IqFfmpegProcess::outputDir() const
+{
+    return m_outputDir;
+}
+

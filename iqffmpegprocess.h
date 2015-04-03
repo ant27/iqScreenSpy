@@ -5,38 +5,56 @@
 #include <QProcess>
 #include <QTimer>
 
-class IQFFmpegProcess : public QObject
+class IqFfmpegProcess : public QObject
 {
     Q_OBJECT
 public:
-    explicit IQFFmpegProcess(QObject *parent = 0);
+    explicit IqFfmpegProcess(QObject *parent = 0);
 
     void setProcessEnvironment(const QProcessEnvironment &environment);
 
-    void setFFmpegBinString(const QString &ffmpegBinStr);
-
-    void setOutputDir(const QString &dir);
+    void start(const qint64 duration);
 
 signals:
-    void finished(const int code);
-    
-public slots:
-    void start(const QString &hostName, const int height, const int width, const qint64 duration);
+    void finished(int exitCode, QProcess::ExitStatus exitStatus);
 
-private slots:
+public:
+    QString outputDir() const;
+    void setOutputDir(const QString &dir);
+
+    QString outputFileExtension() const;
+    void setOutputFileExtension(const QString &outputFileExtension);
+
+    int fps() const;
+    void setFps(int fps);
+
+    QString vcodeParam() const;
+    void setVcodeParam(const QString &vcodeParam);
+
+    int threads() const;
+    void setThreads(int threads);
+
+    QString binPath() const;
+    void setBinPath(const QString &binPath);
+
+private:
     void stop();
     
 private:
-    static const int _finishedInterval = 30000;
-    static const int _lapping = 30000;
+    static const int m_finishedInterval = 30000;
+    static const int m_lapping = 30000;
 
-    QProcess _ffmpeg;
-    QString _ffmpegBinString;
-    QString _outputDir;
-    QTimer _finishedTimer;
+    QString m_binPath;
+    QString m_outputDir;
+    QString m_vcodeParam;
+    QString m_outputFileExtension;
+    int m_fps;
+    int m_threads;
 
-    QString _host;
-    QString _fileName;
+    QProcess m_ffmpeg;
+    QTimer m_finishedTimer;
+
+    QString m_fileName;
 };
 
 #endif // IQFFMPEGPROCESS_H
