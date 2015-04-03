@@ -65,7 +65,7 @@ void IqScreenSpy::initializeSettings()
 
     settings.beginGroup(SETTING_GROUP_FFMPEG);
     if (!settings.contains(SETTING_FFMPEG_FFMPEG_BIN_PATH))
-        settings.setValue(SETTING_FFMPEG_FFMPEG_BIN_PATH, "ffmpeg");
+        settings.setValue(SETTING_FFMPEG_FFMPEG_BIN_PATH, "/opt/iq/bin/ffmpeg");
     if (!settings.contains(SETTING_FFMPEG_FFMPEG_EXTRA_LD_LIBRARYPATH))
         settings.setValue(SETTING_FFMPEG_FFMPEG_EXTRA_LD_LIBRARYPATH, "/opt/csw/X11/lib");
     if (!settings.contains(SETTING_FFMPEG_MAXIMUM_FPS))
@@ -91,7 +91,7 @@ void IqScreenSpy::initializeSettings()
     if (!settings.contains(SETTING_ARCHIVE_COMMPRESS_ENABLED))
         settings.setValue(SETTING_ARCHIVE_COMMPRESS_ENABLED, true);
     if (!settings.contains(SETTING_ARCHIVE_TAR_BIN_PATH))
-        settings.setValue(SETTING_ARCHIVE_TAR_BIN_PATH, "tar");
+        settings.setValue(SETTING_ARCHIVE_TAR_BIN_PATH, "/opt/csw/bin/gtar");
     settings.endGroup();
 }
 
