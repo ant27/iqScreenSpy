@@ -29,7 +29,8 @@
 #include "iqtarprocess.h"
 
 IqScreenSpy::IqScreenSpy(QObject *parent) :
-    QObject(parent)
+    QObject(parent),
+    m_archiveInProcess(false)
 {
     m_timer.setInterval(1000);
     m_timer.setSingleShot(false);
@@ -156,8 +157,11 @@ void IqScreenSpy::rotate()
     settings.endGroup();
 
     foreach (const QString &filePath, findOldFile(storageTime)) {
-        QFile::remove(filePath);
-        qDebug() << "Remove " << filePath;
+        if (QFile::remove(filePath)) {
+            qDebug() << "Remove " << filePath;
+        } else {
+            qWarning() << "Error on remove " << filePath;
+        }
     }
 }
 
@@ -215,8 +219,8 @@ QStringList IqScreenSpy::findOldFile(qint64 time) const
     QDateTime currentDateTime = QDateTime::currentDateTime();
     QDir outputDir (outputDirStr);
     QFileInfoList outputDirEntry = outputDir.entryInfoList();
-    QRegExp rx ("(.*)_(\\d\\d\\.\\d\\d\\.\\d\\d\\d\\d)_(\\d\\d\\.\\d\\d)-(\\d\\d\\.\\d\\d\\.\\d\\d\\d\\d)_(\\d\\d\\.\\d\\d)");
-    foreach (QFileInfo file, outputDirEntry) {
+    QRegExp rx ("(.*)_(\\d\\d\\.\\d\\d\\.\\d\\d\\d\\d)_(\\d\\d\\.\\d\\d)-(\\d\\d\\.\\d\\d\\.\\d\\d\\d\\d)_(\\d\\d\\.\\d\\d)[\\.\\w]+");
+    foreach (const QFileInfo &file, outputDirEntry) {
         if (rx.indexIn(file.fileName()) == -1)
             continue;
         QStringList filePrs = rx.capturedTexts();
@@ -224,8 +228,7 @@ QStringList IqScreenSpy::findOldFile(qint64 time) const
             continue;
         QDateTime fileDateTime = QDateTime::fromString(filePrs[2] + " " + filePrs[3], "dd.MM.yyyy hh.mm");
 
-        if (fileDateTime.msecsTo(currentDateTime) > time)
-        {
+        if (fileDateTime.msecsTo(currentDateTime) > time) {
             result << file.filePath();
         }
     }

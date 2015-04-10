@@ -22,8 +22,12 @@ public:
     void setBinPath(const QString &binPath);
 
 private:
+    void removeUncompressedFile(int exitCode, QProcess::ExitStatus exitStatus);
+
+private:
     QProcess m_tar;
     QString m_binPath;
+    QString m_filePath;
 };
 
 #endif // IQTARPROCESS_H
