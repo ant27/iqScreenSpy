@@ -37,6 +37,9 @@ public:
     QString binPath() const;
     void setBinPath(const QString &binPath);
 
+    QString screenGeometry() const;
+    void setScreenGeometry(const QString &screenGeometry);
+
 private:
     void stop();
     
@@ -48,6 +51,7 @@ private:
     QString m_outputDir;
     QString m_vcodeParam;
     QString m_outputFileExtension;
+    QString m_screenGeometry;
     int m_fps;
     int m_threads;
 

@@ -27,5 +27,6 @@ private:
     QTimer m_timer;
     bool m_archiveInProcess;
     QStringList m_filestToArchive;
+    QString m_screenGeometry;
 };
 #endif // IQSCREENSPY_H

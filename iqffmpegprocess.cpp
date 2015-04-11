@@ -40,9 +40,10 @@ void IqFfmpegProcess::start(const qint64 duration)
     ffmpegProgram.append(binPath());
     ffmpegProgram.append(" -y ");
     ffmpegProgram.append(" -s ");
-    ffmpegProgram.append(QString("%0x%1")
-                         .arg(QApplication::desktop()->screenGeometry().width())
-                         .arg(QApplication::desktop()->screenGeometry().height()));
+    ffmpegProgram.append(screenGeometry());
+//    ffmpegProgram.append(QString("%0x%1")
+//                         .arg(QApplication::desktop()->screenGeometry().width())
+//                         .arg(QApplication::desktop()->screenGeometry().height()));
     ffmpegProgram.append(" -f x11grab ");
     ffmpegProgram.append(" -i :0.0 ");
     ffmpegProgram.append(" -r ");
@@ -73,6 +74,16 @@ void IqFfmpegProcess::stop()
         m_ffmpeg.kill();
     qDebug() << "End record screen. File saved to " << m_fileName;
 }
+QString IqFfmpegProcess::screenGeometry() const
+{
+    return m_screenGeometry;
+}
+
+void IqFfmpegProcess::setScreenGeometry(const QString &screenGeometry)
+{
+    m_screenGeometry = screenGeometry;
+}
+
 QString IqFfmpegProcess::binPath() const
 {
     return m_binPath;

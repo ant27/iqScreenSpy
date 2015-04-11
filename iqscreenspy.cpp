@@ -9,7 +9,6 @@
 #define SETTING_FFMPEG_MAXIMUM_THREADS "maximumThreads"
 #define SETTING_FFMPEG_VCODEC_PARAMS "vcodecParams"
 #define SETTING_FFMPEG_OUTPUT_FILE_EXTENSION "outputFileExtension"
-//#define SETTING_FFMPEG_RECORD_DURATION "recordDuration"
 
 #define SETTING_GROUP_ROTATE "RotateParams"
 #define SETTING_ROTATE_STORAGE_TIME "storageTime"
@@ -27,6 +26,8 @@
 #include <QDateTime>
 #include <QDebug>
 #include <QFile>
+#include <QDesktopWidget>
+#include <QApplication>
 #include "iqffmpegprocess.h"
 #include "iqtarprocess.h"
 
@@ -44,6 +45,10 @@ IqScreenSpy::IqScreenSpy(QObject *parent) :
 
 void IqScreenSpy::start()
 {
+    m_screenGeometry = QString("%0x%1")
+            .arg(QApplication::desktop()->screenGeometry().width())
+            .arg(QApplication::desktop()->screenGeometry().height());
+
     startNewRecords();
     m_timer.start();
 }
@@ -51,11 +56,6 @@ void IqScreenSpy::start()
 void IqScreenSpy::onTimeout()
 {
     QTime currtentTime = QTime::currentTime();
-//    QSettings settings;
-//    settings.beginGroup(SETTING_GROUP_FFMPEG);
-//    qint64 recordDuration = settings.value(SETTING_FFMPEG_RECORD_DURATION).toLongLong();
-//    settings.endGroup();
-//    int recordDurationInMinutes = recordDuration / 60000;
     int recordDurationInMinutes = RECORD_DURATION_MINUTES;
     if (currtentTime.second() != 0 || currtentTime.minute() % recordDurationInMinutes != 0)
         return;
@@ -80,8 +80,6 @@ void IqScreenSpy::initializeSettings()
         settings.setValue(SETTING_FFMPEG_MAXIMUM_THREADS, 2);
     if (!settings.contains(SETTING_FFMPEG_VCODEC_PARAMS))
         settings.setValue(SETTING_FFMPEG_VCODEC_PARAMS, "libx264 -crf 18 -tune stillimage");
-//    if (!settings.contains(SETTING_FFMPEG_RECORD_DURATION))
-//        settings.setValue(SETTING_FFMPEG_RECORD_DURATION, 600000);
     if (!settings.contains(SETTING_FFMPEG_OUTPUT_FILE_EXTENSION))
         settings.setValue(SETTING_FFMPEG_OUTPUT_FILE_EXTENSION, ".avi");
     settings.endGroup();
@@ -112,11 +110,9 @@ void IqScreenSpy::startNewRecords()
     int ffmpegFps = settings.value(SETTING_FFMPEG_MAXIMUM_FPS).toInt();
     int ffmpegThreads = settings.value(SETTING_FFMPEG_MAXIMUM_THREADS).toInt();
     QString ffmpegVcodec = settings.value(SETTING_FFMPEG_VCODEC_PARAMS).toString();
-//    qint64 recordDuration = settings.value(SETTING_FFMPEG_RECORD_DURATION).toLongLong();
     QString outputFileExtension = settings.value(SETTING_FFMPEG_OUTPUT_FILE_EXTENSION).toString();
     settings.endGroup();
 
-//    int recordDurationInMinutes = recordDuration / 60000;
     int recordDurationInMinutes = RECORD_DURATION_MINUTES;
 
     QDateTime currentDateTime = QDateTime::currentDateTime();
@@ -146,6 +142,7 @@ void IqScreenSpy::startNewRecords()
     ffmpeg->setThreads(ffmpegThreads);
     ffmpeg->setVcodeParam(ffmpegVcodec);
     ffmpeg->start(duration);
+    ffmpeg->setScreenGeometry(m_screenGeometry);
 
     connect(ffmpeg, &IqFfmpegProcess::finished, ffmpeg, &QObject::deleteLater);
 
