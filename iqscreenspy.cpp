@@ -141,8 +141,8 @@ void IqScreenSpy::startNewRecords()
     ffmpeg->setFps(ffmpegFps);
     ffmpeg->setThreads(ffmpegThreads);
     ffmpeg->setVcodeParam(ffmpegVcodec);
-    ffmpeg->start(duration);
     ffmpeg->setScreenGeometry(m_screenGeometry);
+    ffmpeg->start(duration);
 
     connect(ffmpeg, &IqFfmpegProcess::finished, ffmpeg, &QObject::deleteLater);
 
