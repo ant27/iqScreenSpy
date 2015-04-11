@@ -1,8 +1,6 @@
 #include "iqffmpegprocess.h"
 #include <QDateTime>
 #include <QDebug>
-#include <QApplication>
-#include <QDesktopWidget>
 #include <QHostInfo>
 
 IqFfmpegProcess::IqFfmpegProcess(QObject *parent) :
@@ -41,9 +39,6 @@ void IqFfmpegProcess::start(const qint64 duration)
     ffmpegProgram.append(" -y ");
     ffmpegProgram.append(" -s ");
     ffmpegProgram.append(screenGeometry());
-//    ffmpegProgram.append(QString("%0x%1")
-//                         .arg(QApplication::desktop()->screenGeometry().width())
-//                         .arg(QApplication::desktop()->screenGeometry().height()));
     ffmpegProgram.append(" -f x11grab ");
     ffmpegProgram.append(" -i :0.0 ");
     ffmpegProgram.append(" -r ");
