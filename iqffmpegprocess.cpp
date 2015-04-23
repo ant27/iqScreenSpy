@@ -39,7 +39,7 @@ void IqFfmpegProcess::start(const qint64 duration)
     QString ffmpegProgram;
     ffmpegProgram.append(binPath());
     ffmpegProgram.append(" -y ");
-    if (thread() != -1) {
+    if (threads() != -1) {
         ffmpegProgram.append(" -threads ");
         ffmpegProgram.append(QString::number(threads()));
     }
