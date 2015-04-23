@@ -4,7 +4,9 @@
 #include <QHostInfo>
 
 IqFfmpegProcess::IqFfmpegProcess(QObject *parent) :
-    QObject(parent)
+    QObject(parent),
+    m_fps(-1),
+    m_threads(-1)
 {
     connect(&m_ffmpeg, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this, &IqFfmpegProcess::finished);
     connect(&m_finishedTimer, &QTimer::timeout, this, &IqFfmpegProcess::stop);
@@ -37,14 +39,18 @@ void IqFfmpegProcess::start(const qint64 duration)
     QString ffmpegProgram;
     ffmpegProgram.append(binPath());
     ffmpegProgram.append(" -y ");
+    if (thread() != -1) {
+        ffmpegProgram.append(" -threads ");
+        ffmpegProgram.append(QString::number(threads()));
+    }
     ffmpegProgram.append(" -s ");
     ffmpegProgram.append(screenGeometry());
+    if (fps() != -1) {
+        ffmpegProgram.append(" -r ");
+        ffmpegProgram.append(QString::number(fps()));
+    }
     ffmpegProgram.append(" -f x11grab ");
     ffmpegProgram.append(" -i :0.0 ");
-    ffmpegProgram.append(" -r ");
-    ffmpegProgram.append(QString::number(fps()));
-    ffmpegProgram.append(" -threads ");
-    ffmpegProgram.append(QString::number(threads()));
     ffmpegProgram.append(" -vcodec ");
     ffmpegProgram.append(vcodeParam());
     ffmpegProgram.append(" ");

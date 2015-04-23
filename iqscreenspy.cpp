@@ -107,8 +107,8 @@ void IqScreenSpy::startNewRecords()
     settings.beginGroup(SETTING_GROUP_FFMPEG);
     QString binPath = settings.value(SETTING_FFMPEG_FFMPEG_BIN_PATH).toString();
     QString extraLibraryPath = settings.value(SETTING_FFMPEG_FFMPEG_EXTRA_LD_LIBRARYPATH).toString();
-    int ffmpegFps = settings.value(SETTING_FFMPEG_MAXIMUM_FPS).toInt();
-    int ffmpegThreads = settings.value(SETTING_FFMPEG_MAXIMUM_THREADS).toInt();
+    int ffmpegFps = settings.value(SETTING_FFMPEG_MAXIMUM_FPS, -1).toInt();
+    int ffmpegThreads = settings.value(SETTING_FFMPEG_MAXIMUM_THREADS, -1).toInt();
     QString ffmpegVcodec = settings.value(SETTING_FFMPEG_VCODEC_PARAMS).toString();
     QString outputFileExtension = settings.value(SETTING_FFMPEG_OUTPUT_FILE_EXTENSION).toString();
     settings.endGroup();
