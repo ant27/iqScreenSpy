@@ -51,7 +51,7 @@ void IqFfmpegProcess::start(const qint64 duration)
         ffmpegProgram.append(QString::number(fps()));
     }
     ffmpegProgram.append(" -f x11grab ");
-    ffmpegProgram.append(QString(" -i :%0.0 ").arg(m_screen));
+    ffmpegProgram.append(QString(" -i :0.%0 ").arg(m_screen));
     ffmpegProgram.append(" -vcodec ");
     ffmpegProgram.append(vcodeParam());
     ffmpegProgram.append(" ");
