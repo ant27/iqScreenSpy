@@ -18,6 +18,9 @@
 #define SETTING_ARCHIVE_UNCOMPRESSED_STORAGE_TIME "uncompressedStorageTime"
 #define SETTING_ARCHIVE_TAR_BIN_PATH "tarBinPath"
 
+#define CUSTOM_SETTINGS_FILE "iqScreenSpyCustom"
+#define SETTING_SCREEN "screen"
+
 #include "iqscreenspy.h"
 #include <QSettings>
 #include <QDateTime>
@@ -132,6 +135,8 @@ void IqScreenSpy::startNewRecords()
         ffmpegEnvironment.insert("LD_LIBRARY_PATH", ffmpegEnvironment.value("LD_LIBRARY_PATH") + ":" + extraLibraryPath);
     }
 
+    QSettings customSettings (QApplication::organizationName(), CUSTOM_SETTINGS_FILE);
+    int screen = customSettings.value(SETTING_SCREEN, 0);
 
     IqFfmpegProcess *ffmpeg = new IqFfmpegProcess(this);
     ffmpeg->setOutputDir(outputDir);
@@ -142,6 +147,7 @@ void IqScreenSpy::startNewRecords()
     ffmpeg->setThreads(ffmpegThreads);
     ffmpeg->setVcodeParam(ffmpegVcodec);
     ffmpeg->setScreenGeometry(m_screenGeometry);
+    ffmpeg->setScreen(screen);
     ffmpeg->start(duration);
 
     connect(ffmpeg, &IqFfmpegProcess::finished, ffmpeg, &QObject::deleteLater);

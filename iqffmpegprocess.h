@@ -40,6 +40,9 @@ public:
     QString screenGeometry() const;
     void setScreenGeometry(const QString &screenGeometry);
 
+    int screen() const;
+    void setScreen(int screen);
+
 private:
     void stop();
     
@@ -54,6 +57,7 @@ private:
     QString m_screenGeometry;
     int m_fps;
     int m_threads;
+    int m_screen;
 
     QProcess m_ffmpeg;
     QTimer m_finishedTimer;
