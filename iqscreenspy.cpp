@@ -136,7 +136,7 @@ void IqScreenSpy::startNewRecords()
     }
 
     QSettings customSettings (QApplication::organizationName(), CUSTOM_SETTINGS_FILE);
-    int screen = customSettings.value(SETTING_SCREEN, 0);
+    int screen = customSettings.value(SETTING_SCREEN, 0).toInt();
 
     IqFfmpegProcess *ffmpeg = new IqFfmpegProcess(this);
     ffmpeg->setOutputDir(outputDir);
