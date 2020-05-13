@@ -6,9 +6,10 @@
 IqFfmpegProcess::IqFfmpegProcess(QObject *parent) :
     QObject(parent),
     m_fps(-1),
-    m_threads(-1),
-    m_screen(0)
+    m_threads(-1)
+
 {
+    QString m_screen = QString("0.0");
     connect(&m_ffmpeg, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this, &IqFfmpegProcess::finished);
     connect(&m_finishedTimer, &QTimer::timeout, this, &IqFfmpegProcess::stop);
 }
@@ -51,7 +52,7 @@ void IqFfmpegProcess::start(const qint64 duration)
         ffmpegProgram.append(QString::number(fps()));
     }
     ffmpegProgram.append(" -f x11grab ");
-    ffmpegProgram.append(QString(" -i :0.%0 ").arg(m_screen));
+    ffmpegProgram.append(QString(" -i %0 ").arg(m_screen));
     ffmpegProgram.append(" -vcodec ");
     ffmpegProgram.append(vcodeParam());
     ffmpegProgram.append(" ");
@@ -77,12 +78,12 @@ void IqFfmpegProcess::stop()
     qDebug() << "End record screen. File saved to " << m_fileName;
 }
 
-int IqFfmpegProcess::screen() const
+QString IqFfmpegProcess::screen() const
 {
     return m_screen;
 }
 
-void IqFfmpegProcess::setScreen(int screen)
+void IqFfmpegProcess::setScreen(QString screen)
 {
     m_screen = screen;
 }
